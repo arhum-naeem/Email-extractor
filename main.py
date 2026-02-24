@@ -31,16 +31,30 @@ def main():
                     with open(content_file, "r", encoding="utf-8") as f:
                         text = f.read()
                     
-                    from llm_extractor import extract_insurance_info
+                    from llm_extractor import extract_insurance_info, classify_ocr_documents
+                    from ocr_processor import perform_ocr
                     import json
                     
-                    # You can change the model here (e.g., "mistral", "llama3")
+                    # 1. Structured Data Extraction from Body
                     extracted_data = extract_insurance_info(text, model="llama3")
-                    
                     json_path = os.path.join(folder_name, "extracted_data.json")
                     with open(json_path, "w", encoding="utf-8") as f:
                         json.dump(extracted_data, f, indent=2)
                     print(f"  Stored structured data in {json_path}")
+
+                    # 2. OCR Step for Images
+                    print(f"  Starting OCR for images in {folder_name}...")
+                    ocr_text = perform_ocr(folder_name)
+                    
+                    # 3. Document Classification Step
+                    if ocr_text:
+                        print(f"  Classifying OCR documents for {folder_name}...")
+                        classified_docs = classify_ocr_documents(ocr_text, model="llama3")
+                        for doc_name, doc_content in classified_docs.items():
+                            doc_path = os.path.join(folder_name, f"{doc_name}.txt")
+                            with open(doc_path, "w", encoding="utf-8") as f:
+                                f.write(doc_content)
+                            print(f"    Saved classified document: {doc_path}")
                 
             except Exception as e:
                 print(f"Error processing email {i+1}: {e}")

@@ -1,2 +1,5 @@
 playwright
 python-dotenv
+easyocr
+opencv-python-headless
+ollama

@@ -86,6 +86,46 @@ def extract_insurance_info(text, model="llama3"):
         print(f"Error during LLM extraction: {e}")
         return {{"error": str(e), "raw_response": content if 'content' in locals() else None}}
 
+def classify_ocr_documents(ocr_text, model="llama3"):
+    """
+    Uses Ollama to identify distinct documents in OCR text and extract their content.
+    Returns a dictionary of {doc_name: content}.
+    """
+    if not ocr_text:
+        return {}
+
+    prompt = f"""
+    Below is a text result from an OCR process on several images attached to an email.
+    The text might contain multiple legal or personal documents (e.g., CNIC, Driving License, Vehicle Registration, Insurance Policy).
+    
+    Your task is to:
+    1. Identify each distinct document found in the text.
+    2. Extract the relevant text for each document.
+    3. Return the result strictly as a valid JSON object where keys are the document names (slugified, e.g., "cnic", "driving_license") and values are the extracted text for that specific document.
+    
+    If multiple documents of the same type are found, merge them or index them (e.g., "cnic_front", "cnic_back").
+    
+    OCR Text:
+    \"\"\"
+    {ocr_text}
+    \"\"\"
+    
+    Strict JSON Output:
+    """
+
+    try:
+        response = ollama.generate(model=model, prompt=prompt)
+        content = response['response'].strip()
+        if "```json" in content:
+            content = content.split("```json")[1].split("```")[0].strip()
+        elif "```" in content:
+            content = content.split("```")[1].split("```")[0].strip()
+            
+        return json.loads(content)
+    except Exception as e:
+        print(f"Error during document classification: {e}")
+        return {}
+
 if __name__ == "__main__":
     # Test with sample text
     sample_text = "My name is John Doe, CNIC 12345-6789012-3. I drive a 2022 Toyota Corolla. I want comprehensive coverage."

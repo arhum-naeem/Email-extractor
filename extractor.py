@@ -85,10 +85,25 @@ class GmailExtractor:
         
         save_content(folder_name, subject, sender, date_full, body_text)
         
-        # Extract images
-        images = body_locator.locator("img").all()
-        for i, img in enumerate(images):
+        # Extract images (Refined to target only attachments/inline images)
+        # We target the body and the attachment area if it exists
+        attachment_area = self.page.locator("div.hq.gt")
+        
+        all_images = []
+        # Inline images in body
+        all_images.extend(body_locator.locator("img").all())
+        # Images in attachment area
+        if attachment_area.count() > 0:
+            all_images.extend(attachment_area.locator("img").all())
+
+        extracted_count = 0
+        for i, img in enumerate(all_images):
             try:
+                # Filter out small UI icons (usually < 30px)
+                box = img.bounding_box()
+                if box and (box['width'] < 30 or box['height'] < 30):
+                    continue
+
                 src = img.get_attribute("src")
                 if not src: continue
                 
@@ -97,13 +112,15 @@ class GmailExtractor:
                     header, data = src.split(",", 1)
                     ext = header.split("/")[1].split(";")[0]
                     img_data = base64.b64decode(data)
-                    with open(os.path.join(folder_name, f"media_{i+1}.{ext}"), "wb") as f:
+                    file_name = f"media_{extracted_count + 1}.{ext}"
+                    with open(os.path.join(folder_name, file_name), "wb") as f:
                         f.write(img_data)
+                    extracted_count += 1
                 else:
-                    # Try to save the image (e.g. by taking a screenshot of the element 
-                    # or navigating to src if it's a direct link)
-                    # For Gmail, these are often dynamic. Let's try screenshotting the element for simplicity
-                    img.screenshot(path=os.path.join(folder_name, f"media_{i+1}.png"))
+                    # Take screenshot of the image element
+                    file_name = f"media_{extracted_count + 1}.png"
+                    img.screenshot(path=os.path.join(folder_name, file_name))
+                    extracted_count += 1
             except Exception as e:
                 print(f"Failed to extract image {i+1}: {e}")
         
