@@ -31,11 +31,12 @@ def main():
                     with open(content_file, "r", encoding="utf-8") as f:
                         text = f.read()
                     
-                    from llm_extractor import extract_insurance_info, classify_ocr_documents
-                    from ocr_processor import perform_ocr
                     import json
-                    
+                    from llm_extractor import extract_insurance_info, classify_ocr_documents
+                    from ocr import perform_ocr_with_llama
+
                     # 1. Structured Data Extraction from Body
+                    print(f"  Extracting structured data using LLM for {folder_name}...")
                     extracted_data = extract_insurance_info(text, model="llama3")
                     json_path = os.path.join(folder_name, "extracted_data.json")
                     with open(json_path, "w", encoding="utf-8") as f:
@@ -43,8 +44,8 @@ def main():
                     print(f"  Stored structured data in {json_path}")
 
                     # 2. OCR Step for Images
-                    print(f"  Starting OCR for images in {folder_name}...")
-                    ocr_text = perform_ocr(folder_name)
+                    print(f"  Starting Llama OCR for images in {folder_name}...")
+                    ocr_text = perform_ocr_with_llama(folder_name, model="llama3.2-vision")
                     
                     # 3. Document Classification Step
                     if ocr_text:
